@@ -18,11 +18,6 @@ while (userInput != "E");
 
 var trunkInputs = new List<double>();
 
-foreach (var item in inputs)
-{
-    trunkInputs.Add(item);
-}
-
 var discoveredRules = FindRules(inputs);
 var rules = discoveredRules.Select(r => r.Transform).ToList();
 
@@ -53,9 +48,6 @@ for (int i = 0; i < rules.Count; i++)
         truncabiliy += matchesInARow+1;
     }
 }
-foreach (var idx in removeIndices.OrderByDescending(x => x))
-    trunkInputs.RemoveAt(idx);
-
 var compressed = new List<CompressedItem>();
 
 var matchesIndexList = matchesIndex.OrderBy(x => x).ToList();
@@ -71,7 +63,9 @@ while (matches < matchesIndexList.Count)
         && ruleMatches.ContainsKey(matchesIndexList[matches])
         && ruleMatches.ContainsKey(matchesIndexList[matches + 1])
         && ruleMatches[matchesIndexList[matches]] ==
-           ruleMatches[matchesIndexList[matches + 1]])
+           ruleMatches[matchesIndexList[matches + 1]]
+        && Math.Abs(rules[ruleMatches[matchesIndexList[matches]]](inputs[matchesIndexList[matches]])
+           - inputs[matchesIndexList[matches] + 1]) < 1e-10)
     {
         count++;
         matches++;
@@ -94,6 +88,14 @@ while (matches < matchesIndexList.Count)
     matches++;
 }
 
+var coveredIndices = new HashSet<int>();
+foreach (var item in compressed)
+    for (int i = 0; i < item.Count; i++)
+        coveredIndices.Add(item.StartIndex + i);
+
+for (int i = 0; i < inputs.Count; i++)
+    if (!coveredIndices.Contains(i))
+        trunkInputs.Add(inputs[i]);
 
 int inputsCount = inputs.Count;
 var unpackedList = new List<double>();
