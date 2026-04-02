@@ -21,8 +21,16 @@ var trunkInputs = new List<double>();
 var discoveredRules = FindRules(inputs);
 var rules = discoveredRules.Select(r => r.Transform).ToList();
 
-var removeIndices = new HashSet<int>();
 int truncabiliy = 0;
+var repeatingBlocks = FindRepeatingBlocks(inputs);
+var repeatingCovered = new HashSet<int>();
+foreach (var rb in repeatingBlocks)
+    for (int i = rb.StartIndex; i < rb.StartIndex + rb.BlockLength * rb.RepeatCount; i++)
+    {
+            repeatingCovered.Add(i);
+            truncabiliy += 1;
+    }
+var removeIndices = new HashSet<int>();
 int matchesInARow = 0;
 HashSet<int> matchesIndex = new HashSet<int>();
 Dictionary<int, int> ruleMatches = new Dictionary<int, int>();
@@ -32,6 +40,7 @@ for (int i = 0; i < rules.Count; i++)
     matchesInARow = 0;
     for (int j = 0; j < inputs.Count - 1; j++)
     {
+        if (repeatingCovered.Contains(j) || repeatingCovered.Contains(j + 1)) continue;
         if (rules[i](inputs[j]) == inputs[j+1])
         {
             matchesInARow++;
@@ -92,6 +101,8 @@ var coveredIndices = new HashSet<int>();
 foreach (var item in compressed)
     for (int i = 0; i < item.Count; i++)
         coveredIndices.Add(item.StartIndex + i);
+foreach (var i in repeatingCovered)
+    coveredIndices.Add(i);
 
 for (int i = 0; i < inputs.Count; i++)
     if (!coveredIndices.Contains(i))
@@ -104,9 +115,17 @@ int trunkIndex = 0;
 
 for (int t = 0; t < inputsCount; t++)
 {
+    var rep  = repeatingBlocks.FirstOrDefault(r => r.StartIndex == t);
     var comp = compressed.FirstOrDefault(c => c.StartIndex == t);
 
-    if (comp != null)
+    if (rep != null)
+    {
+        for (int r = 0; r < rep.RepeatCount; r++)
+            foreach (var v in rep.Block)
+                unpackedList.Add(v);
+        t += rep.BlockLength * rep.RepeatCount - 1;
+    }
+    else if (comp != null)
     {
         for (int i = 0; i < comp.Count; i++)
         {
@@ -139,6 +158,7 @@ foreach (var inp in inputs)
 {
     Console.Write(inp + ", ");
 }
+Console.WriteLine("Totalt " + inputs.Count + " datapunkter");
 Console.WriteLine();
 Console.WriteLine();
 Console.WriteLine($"Hittade {discoveredRules.Count} regler: " + string.Join(", ", discoveredRules.Select(r => r.Description)));
@@ -150,7 +170,10 @@ foreach (var index in ruleMatches)
     Console.Write($"[{index.Key}, {discoveredRules[index.Value].Description}], ");
 }
 Console.WriteLine();
-Console.WriteLine($"och sparas till {compressed.Count} instanser av en klass");
+Console.WriteLine($"och sparas till {compressed.Count} instanser av en regelklass");
+Console.WriteLine($"Hittade {repeatingBlocks.Count} upprepade block:");
+foreach (var rb in repeatingBlocks)
+    Console.WriteLine($"  Index {rb.StartIndex}: [{string.Join(", ", rb.Block)}] × {rb.RepeatCount}");
 Console.Write("Följande tal gick inte att komprimera och behöver sparas enskilt: ");
 foreach (var inp in trunkInputs)
 {
@@ -277,7 +300,72 @@ static List<Rule> FindRules(List<double> inputs)
 }
 
 
+static List<RepeatingBlock> FindRepeatingBlocks(List<double> inputs)
+{
+    int n = inputs.Count;
+    var candidates = new List<RepeatingBlock>();
+
+    for (int start = 0; start < n; start++)
+    {
+        for (int len = 2; start + len * 2 <= n; len++)
+        {
+            int reps = 1;
+            while (start + len * (reps + 1) <= n)
+            {
+                bool match = true;
+                for (int k = 0; k < len; k++)
+                {
+                    if (Math.Abs(inputs[start + k] - inputs[start + len * reps + k]) > 1e-10)
+                    { match = false; break; }
+                }
+                if (!match) break;
+                reps++;
+            }
+
+            if (reps >= 2)
+                candidates.Add(new RepeatingBlock
+                {
+                    StartIndex  = start,
+                    BlockLength = len,
+                    RepeatCount = reps,
+                    Block       = inputs.GetRange(start, len)
+                });
+        }
+    }
+
+    // Greedy: pick highest compression gain first, skip overlapping candidates
+    candidates.Sort((a, b) =>
+        (b.BlockLength * (b.RepeatCount - 1))
+        .CompareTo(a.BlockLength * (a.RepeatCount - 1)));
+
+    var chosen = new List<RepeatingBlock>();
+    var used   = new HashSet<int>();
+
+    foreach (var c in candidates)
+    {
+        int end = c.StartIndex + c.BlockLength * c.RepeatCount;
+        bool overlap = false;
+        for (int i = c.StartIndex; i < end; i++)
+            if (used.Contains(i)) { overlap = true; break; }
+        if (overlap) continue;
+
+        chosen.Add(c);
+        for (int i = c.StartIndex; i < end; i++)
+            used.Add(i);
+    }
+
+    return chosen;
+}
+
 record Rule(Func<double, double> Transform, string Description);
+
+public class RepeatingBlock
+{
+    public int StartIndex   { get; set; }
+    public int BlockLength  { get; set; }
+    public int RepeatCount  { get; set; }
+    public List<double> Block { get; set; }
+}
 
 public class CompressedItem
 {
