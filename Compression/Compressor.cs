@@ -54,7 +54,7 @@ static class Compressor
                 pos++;
             }
 
-            if (count >= 2)
+            if (count >= 3)
                 compressed.Add(new CompressedItem
                 {
                     StartIndex = start,
