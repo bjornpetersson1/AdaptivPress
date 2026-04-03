@@ -1,55 +1,174 @@
 using CustomPress.Compression;
-using CustomPress.Models;
 
-// List<double> inputs = [2, 45, 63, 42, 43, 44, 45, 74, 901, 300, 150, 75, 2, 4, 8, 16, 32, 2, 2, 2, 2, 2, 2];
-string userInput = string.Empty;
-var inputs = new List<double>();
+// ── Helpers ───────────────────────────────────────────────────────────────────
+
+const int W = 56;
+ConsoleColor wallColor = ConsoleColor.DarkCyan;
+
+// Total line width = 1(╔) + W(═…═) + 1(╗) = W+2
+// Row inner content must be W-1 chars: "║ " (2) + content (W-1) + "║" (1) = W+2 ✓
+void Header(string title, ConsoleColor color)
+{
+    wallColor = color;
+    Console.ForegroundColor = color;
+    Console.WriteLine("╔" + new string('═', W) + "╗");
+    Console.Write("║ ");
+    Console.ForegroundColor = ConsoleColor.White;
+    Console.Write(title.PadRight(W - 1));
+    Console.ForegroundColor = color;
+    Console.WriteLine("║");
+    Console.WriteLine("╠" + new string('═', W) + "╣");
+    Console.ResetColor();
+}
+
+void Row(string text, ConsoleColor color = ConsoleColor.White)
+{
+    Console.ForegroundColor = wallColor;
+    Console.Write("║ ");
+    Console.ForegroundColor = color;
+    string clipped = text.Length > W - 1 ? text[..(W - 4)] + "..." : text;
+    Console.Write(clipped.PadRight(W - 1));
+    Console.ForegroundColor = wallColor;
+    Console.WriteLine("║");
+    Console.ResetColor();
+}
+
+void Divider()
+{
+    Console.ForegroundColor = wallColor;
+    Console.WriteLine("╠" + new string('═', W) + "╣");
+    Console.ResetColor();
+}
+
+void Footer()
+{
+    Console.ForegroundColor = wallColor;
+    Console.WriteLine("╚" + new string('═', W) + "╝");
+    Console.WriteLine();
+    Console.ResetColor();
+}
+
+void WrapRows(IEnumerable<double> values, ConsoleColor color = ConsoleColor.White)
+{
+    var buf = new System.Text.StringBuilder();
+    foreach (var num in values)
+    {
+        string token = num.ToString();
+        string sep   = buf.Length == 0 ? "" : "  ";
+        if (buf.Length + sep.Length + token.Length > W - 1)
+        {
+            Row(buf.ToString(), color);
+            buf.Clear();
+            buf.Append(token);
+        }
+        else
+        {
+            buf.Append(sep + token);
+        }
+    }
+    if (buf.Length > 0) Row(buf.ToString(), color);
+}
+
 do
 {
-    Console.WriteLine("Type E and enter to continue");
-    Console.Write("Add num to list: ");
+    // ── Input ─────────────────────────────────────────────────────────────────────
 
-    userInput = Console.ReadLine() ?? string.Empty;
-    if (double.TryParse(userInput, out double result))
-        inputs.Add(result);
+    string userInput = string.Empty;
+    var inputs = new List<double>();
+    do
+    {
+        Console.Clear();
+
+        Header($"INDATA  ·  {inputs.Count} tal inmatade", ConsoleColor.Cyan);
+        if (inputs.Count == 0)
+            Row("  (inga tal ännu)", ConsoleColor.DarkGray);
+        else
+            WrapRows(inputs);
+        Divider();
+        Row("  Ange nästa tal, eller E för att fortsätta:", ConsoleColor.DarkCyan);
+        Footer();
+
+        Console.ForegroundColor = ConsoleColor.Cyan;
+        Console.Write("  > ");
+        Console.ResetColor();
+
+        userInput = Console.ReadLine() ?? string.Empty;
+        if (double.TryParse(userInput, out double result))
+            inputs.Add(result);
+    }
+    while (userInput != "E");
+
     Console.Clear();
-}
-while (userInput != "E");
 
-// Compress
-var compressionResult = Compressor.Compress(inputs);
-var unpacked          = Decompressor.Decompress(inputs.Count, compressionResult, inputs);
+    // ── Compress ──────────────────────────────────────────────────────────────────
 
-// Output
-Console.Write("Lista med datapunkter:\n");
-foreach (var inp in inputs)
-    Console.Write(inp + "\n");
-Console.WriteLine();
-Console.WriteLine("Totalt " + inputs.Count + " datapunkter");
-Console.WriteLine("Dessa " + compressionResult.CoveredIndices.Count + " datapunkter följer ett känt mönster och kan komprimeras");
-foreach(var index in compressionResult.CoveredIndices)
-    Console.WriteLine($"  Index {index}: {inputs[index]}");
-Console.WriteLine();
-Console.WriteLine();
-Console.WriteLine();
-// Console.Write("Möjliga regler för komprimering [TalIndex, Regel]: ");
-// foreach (var index in compressionResult.RuleMatches)
-//     Console.Write($"[{index.Key}, {compressionResult.DiscoveredRules[index.Value].Description}], ");
-Console.WriteLine();
-Console.WriteLine($"Komprimerade tal som komprimeras enligt en matematisk regel sparas i {compressionResult.Compressed.Count} instanser av en regelklass");
-Console.WriteLine($"Hittade {compressionResult.DiscoveredRules.Count} möjliga regler:\n"
-    + string.Join("\n", compressionResult.DiscoveredRules.Select(r => r.Description)));
-Console.WriteLine();
-Console.WriteLine($"Komprimerade tal som komprimeras enligt en blockregel sparas i {compressionResult.RepeatingBlocks.Count} instanser av en blockregel \n");
-foreach (var rb in compressionResult.RepeatingBlocks)
-    Console.WriteLine($"  Index {rb.StartIndex}: [{string.Join(", ", rb.Block)}] × {rb.RepeatCount}");
-Console.Write("Dessa " + compressionResult.UncompressedValues.Count + " tal gick inte att komprimera och behöver sparas enskilt:\n");
-foreach (var inp in compressionResult.UncompressedValues)
-    Console.Write(inp + "\n");
-Console.WriteLine();
-Console.WriteLine();
-Console.Write("Lista med uppackade datapunkter:\n");
-foreach (var inp in unpacked)
-    Console.Write(inp + "\n");
-Console.WriteLine($"Totalt {unpacked.Count} datapunkter efter uppackning");
-Console.WriteLine();
+    var cr       = Compressor.Compress(inputs);
+    var unpacked = Decompressor.Decompress(inputs.Count, cr, inputs);
+
+    // ── INDATA ────────────────────────────────────────────────────────────────────
+
+    Header($"INDATA  ·  {inputs.Count} datapunkter", ConsoleColor.Cyan);
+    WrapRows(inputs);
+    Footer();
+
+    // ── KOMPRIMERING ──────────────────────────────────────────────────────────────
+
+    int coveredCount = cr.CoveredIndices.Count;
+    Header($"KOMPRIMERING  ·  {coveredCount} av {inputs.Count} datapunkter täckta", ConsoleColor.Green);
+
+    Row($"MATEMATISKA REGLER  ({cr.Compressed.Count} instanser)", ConsoleColor.DarkGreen);
+    if (cr.Compressed.Count == 0)
+    {
+        Row("  Inga regelsekvenser hittade");
+    }
+    else
+    {
+        foreach (var item in cr.Compressed)
+        {
+            string ruleName = cr.DiscoveredRules[item.RuleIndex].Description;
+            Row($"  [{item.StartIndex}]  {item.Count} tal  →  regel: {ruleName}  (startvärde: {item.StartValue})", ConsoleColor.Green);
+        }
+    }
+
+    Divider();
+    Row($"UPPREPADE BLOCK  ({cr.RepeatingBlocks.Count} block)", ConsoleColor.DarkGreen);
+    if (cr.RepeatingBlocks.Count == 0)
+    {
+        Row("  Inga upprepade block hittade");
+    }
+    else
+    {
+        foreach (var rb in cr.RepeatingBlocks)
+            Row($"  [{rb.StartIndex}]  [{string.Join(", ", rb.Block)}]  ×  {rb.RepeatCount}", ConsoleColor.Green);
+    }
+
+    Divider();
+    Row($"MÖJLIGA REGLER TOTALT  ({cr.DiscoveredRules.Count} st)", ConsoleColor.DarkGreen);
+    foreach (var rule in cr.DiscoveredRules)
+        Row($"  {rule.Description}", ConsoleColor.Green);
+
+    Footer();
+
+    // ── OKOMPRIMERADE ─────────────────────────────────────────────────────────────
+
+    Header($"OKOMPRIMERADE  ·  {cr.UncompressedValues.Count} tal", ConsoleColor.Yellow);
+    if (cr.UncompressedValues.Count == 0)
+        Row("  Alla datapunkter komprimerades!", ConsoleColor.Yellow);
+    else
+        WrapRows(cr.UncompressedValues, ConsoleColor.Yellow);
+    Footer();
+
+    // ── VERIFIERING ───────────────────────────────────────────────────────────────
+
+    bool verified = unpacked.Count == inputs.Count
+        && unpacked.Zip(inputs).All(p => Math.Abs(p.First - p.Second) < 1e-10);
+
+    Header($"VERIFIERING  ·  {unpacked.Count} datapunkter efter uppackning", ConsoleColor.Magenta);
+    Row(verified ? "  ✓  Uppackning stämmer med originaldatan" : "  ✗  FEL: uppackning stämmer INTE",
+        verified ? ConsoleColor.Green : ConsoleColor.Red);
+    Footer();
+
+    Console.WriteLine("Tryck på valfri tangent för att starta om med nya data...");
+    Console.ReadKey();
+    Console.Clear();
+    } while (true);
