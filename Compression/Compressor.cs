@@ -15,55 +15,45 @@ static class Compressor
             for (int i = rb.StartIndex; i < rb.StartIndex + rb.BlockLength * rb.RepeatCount; i++)
                 repeatingCovered.Add(i);
 
-        var matchesIndex = new HashSet<int>();
-        var ruleMatches  = new Dictionary<int, int>();
+        var ruleMatches = new Dictionary<int, int>();
+        var compressed  = new List<CompressedItem>();
+        var ruleCovered = new HashSet<int>();
 
-        for (int i = 0; i < rules.Count; i++)
+        for (int ruleIdx = 0; ruleIdx < rules.Count; ruleIdx++)
         {
-            for (int j = 0; j < inputs.Count - 1; j++)
+            int j = 0;
+            while (j < inputs.Count)
             {
-                if (repeatingCovered.Contains(j) || repeatingCovered.Contains(j + 1)) continue;
-                if (rules[i](inputs[j]) == inputs[j + 1])
+                if (repeatingCovered.Contains(j) || ruleCovered.Contains(j)) { j++; continue; }
+
+                int start = j;
+                int count = 1;
+
+                while (start + count < inputs.Count
+                    && !repeatingCovered.Contains(start + count)
+                    && !ruleCovered.Contains(start + count)
+                    && Math.Abs(rules[ruleIdx](inputs[start + count - 1]) - inputs[start + count]) < 1e-10)
+                    count++;
+
+                if (count >= 3)
                 {
-                    matchesIndex.Add(j);
-                    matchesIndex.Add(j + 1);
-                    ruleMatches[j]     = i;
-                    ruleMatches[j + 1] = i;
+                    compressed.Add(new CompressedItem
+                    {
+                        StartIndex = start,
+                        StartValue = inputs[start],
+                        Count      = count,
+                        RuleIndex  = ruleIdx
+                    });
+                    for (int k = start; k < start + count; k++)
+                    {
+                        ruleCovered.Add(k);
+                        ruleMatches[k] = ruleIdx;
+                    }
+                    j = start + count;
                 }
+                else
+                    j++;
             }
-        }
-
-        var compressed       = new List<CompressedItem>();
-        var matchesIndexList = matchesIndex.OrderBy(x => x).ToList();
-        int pos              = 0;
-
-        while (pos < matchesIndexList.Count)
-        {
-            int start = matchesIndexList[pos];
-            int count = 1;
-
-            while (pos + 1 < matchesIndexList.Count
-                && matchesIndexList[pos + 1] == matchesIndexList[pos] + 1
-                && ruleMatches.ContainsKey(matchesIndexList[pos])
-                && ruleMatches.ContainsKey(matchesIndexList[pos + 1])
-                && ruleMatches[matchesIndexList[pos]] == ruleMatches[matchesIndexList[pos + 1]]
-                && Math.Abs(rules[ruleMatches[matchesIndexList[pos]]](inputs[matchesIndexList[pos]])
-                   - inputs[matchesIndexList[pos] + 1]) < 1e-10)
-            {
-                count++;
-                pos++;
-            }
-
-            if (count >= 3)
-                compressed.Add(new CompressedItem
-                {
-                    StartIndex = start,
-                    StartValue = inputs[start],
-                    Count      = count,
-                    RuleIndex  = ruleMatches[matchesIndexList[pos]]
-                });
-
-            pos++;
         }
 
         var coveredIndices = new HashSet<int>();
