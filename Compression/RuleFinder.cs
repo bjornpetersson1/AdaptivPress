@@ -1,0 +1,117 @@
+using CustomPress.Models;
+
+namespace CustomPress.Compression;
+
+static class RuleFinder
+{
+    public static List<Rule> FindRules(List<double> inputs)
+    {
+        var rules = new List<Rule>();
+        var addedDiffs  = new HashSet<double>();
+        var addedRatios = new HashSet<double>();
+        var addedAffine = new HashSet<(double, double)>();
+        bool hasSquare     = false;
+        bool hasCube       = false;
+        bool hasSqrt       = false;
+        bool hasReciprocal = false;
+        bool hasLog        = false;
+        bool hasExp        = false;
+
+        for (int i = 0; i < inputs.Count - 2; i++)
+        {
+            double a = inputs[i], b = inputs[i + 1], c = inputs[i + 2];
+
+            // Additive: same constant diff across two consecutive pairs
+            double diffAB = b - a;
+            double diffBC = c - b;
+            if (Math.Abs(diffAB - diffBC) < 1e-10 && addedDiffs.Add(diffAB))
+            {
+                double captured = diffAB;
+                rules.Add(new Rule(x => x + captured, $"x + {captured}"));
+            }
+
+            // Multiplicative: same constant ratio across two consecutive pairs
+            if (a != 0 && b != 0)
+            {
+                double ratioAB = b / a;
+                double ratioBC = c / b;
+                if (Math.Abs(ratioAB - ratioBC) < 1e-10 && addedRatios.Add(ratioAB))
+                {
+                    double captured = ratioAB;
+                    rules.Add(new Rule(x => x * captured, $"x * {captured}"));
+                }
+            }
+
+            // Squaring: b = a² and c = b²
+            if (!hasSquare && b == a * a && c == b * b)
+            {
+                hasSquare = true;
+                rules.Add(new Rule(x => x * x, "x^2"));
+            }
+
+            // Cubing: b = a³ and c = b³
+            if (!hasCube && b == a * a * a && c == b * b * b)
+            {
+                hasCube = true;
+                rules.Add(new Rule(x => x * x * x, "x^3"));
+            }
+                //cubing and squaaring should be able to be combined in to one rule
+
+            // Square root: b = √a and c = √b
+            if (!hasSqrt && a >= 0 && b >= 0
+                && Math.Abs(b - Math.Sqrt(a)) < 1e-10
+                && Math.Abs(c - Math.Sqrt(b)) < 1e-10)
+            {
+                hasSqrt = true;
+                rules.Add(new Rule(x => Math.Sqrt(x), "sqrt(x)"));
+            }
+
+            // Reciprocal: b = 1/a and c = 1/b
+            if (!hasReciprocal && a != 0 && b != 0 && c != 0
+                && Math.Abs(b - 1.0 / a) < 1e-10
+                && Math.Abs(c - 1.0 / b) < 1e-10)
+            {
+                hasReciprocal = true;
+                rules.Add(new Rule(x => 1.0 / x, "1/x"));
+            }
+
+            // Natural log: b = ln(a) and c = ln(b)
+            if (!hasLog && a > 0 && b > 0
+                && Math.Abs(b - Math.Log(a)) < 1e-10
+                && Math.Abs(c - Math.Log(b)) < 1e-10)
+            {
+                hasLog = true;
+                rules.Add(new Rule(x => Math.Log(x), "ln(x)"));
+            }
+
+            // Exponential: b = e^a and c = e^b
+            if (!hasExp
+                && Math.Abs(b - Math.Exp(a)) < 1e-10
+                && Math.Abs(c - Math.Exp(b)) < 1e-10)
+            {
+                hasExp = true;
+                rules.Add(new Rule(x => Math.Exp(x), "e^x"));
+            }
+
+            // Affine: b = m*a + k and c = m*b + k (excludes pure additive m=1 and pure multiplicative k=0)
+            if (Math.Abs(b - a) > 1e-10)
+            {
+                double m = (c - b) / (b - a);
+                double k = b - m * a;
+                if (!double.IsNaN(m) && !double.IsInfinity(m)
+                    && Math.Abs(k) > 1e-10
+                    && Math.Abs(m - 1.0) > 1e-10)
+                {
+                    var key = (Math.Round(m, 9), Math.Round(k, 9));
+                    if (addedAffine.Add(key))
+                    {
+                        double cm = m, ck = k;
+                        rules.Add(new Rule(x => cm * x + ck, $"{cm}*x + {ck}"));
+                    }
+                }
+            }
+        }
+
+        return rules;
+    }
+}
