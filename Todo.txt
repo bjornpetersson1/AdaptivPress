@@ -1,0 +1,3 @@
+Block with increment (1,2,5,2,3,6,3,4,7)
+Refactor rulefinder
+String -> List<Char> -> List<Double> and back

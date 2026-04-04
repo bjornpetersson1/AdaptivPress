@@ -75,6 +75,7 @@ do
 
     string userInput = string.Empty;
     var inputs = new List<double>();
+    var inputType = 0;
     do
     {
         Console.Clear();
@@ -93,8 +94,36 @@ do
         Console.ResetColor();
 
         userInput = Console.ReadLine() ?? string.Empty;
-        if (double.TryParse(userInput, out double result))
-            inputs.Add(result);
+        if (inputType == 0)
+        {
+            if (double.TryParse(userInput, out double result))
+            {
+                inputs.Add(result);
+                inputType = 1;   
+            }
+            else
+            {
+                foreach (char c in userInput)
+                {
+                inputs.Add((double)c);
+                }
+                inputType = 2;
+            }
+        }
+        else if (inputType == 1)
+        {
+            if (double.TryParse(userInput, out double result))
+            {
+                inputs.Add(result);
+            }
+        }
+        else if (inputType == 2)
+        {
+            foreach (char c in userInput)
+                {
+                inputs.Add((double)c);
+                }
+        }
     }
     while (userInput != "E");
 

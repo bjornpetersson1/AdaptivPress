@@ -12,20 +12,43 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Architecture
 
-Single-file console app (`Program.cs`) targeting .NET 10.0. No external dependencies.
+Multi-file console app targeting .NET 10.0. No external dependencies. Namespace: `CustomPress`.
 
-**Algorithm (all in `Program.cs`):**
+### Project structure
+
+```
+Program.cs                  — UI loop (input, display, verification)
+Models/
+  Rule.cs                   — record Rule(Func<double,double> Transform, string Description)
+  CompressedItem.cs         — StartIndex, StartValue, Count, RuleIndex
+  RepeatingBlock.cs         — StartIndex, BlockLength, RepeatCount, Block
+  CompressionResult.cs      — aggregates all compression output
+Compression/
+  Compressor.cs             — orchestrates rule + block compression
+  RuleFinder.cs             — discovers rules from triplet scanning
+  BlockFinder.cs            — finds repeating blocks
+  Decompressor.cs           — reconstructs original sequence
+```
+
+### Algorithm
+
 1. **Input** — user enters doubles one at a time; `E` ends input
-2. **Pattern discovery** — scans consecutive triplets for four rule types:
+2. **Rule discovery** (`RuleFinder`) — scans consecutive triplets for:
    - Additive: `x + n`
    - Multiplicative: `x * n`
-   - Squaring: `x * x`
-   - Square root: `sqrt(x)`
-3. **Compression** — stores `(startIndex, startValue, count, Rule)` instead of each element
-4. **Verification** — unpacks compressed data and compares to original
+   - Squaring: `x^2`, Cubing: `x^3`
+   - Square root: `sqrt(x)`, Reciprocal: `1/x`
+   - Natural log: `ln(x)`, Exponential: `e^x`
+   - Affine: `m*x + k`
+3. **Block discovery** (`BlockFinder`) — finds repeating sub-sequences (min length 2, min 2 repetitions); non-overlapping, greedy by savings
+4. **Compression** (`Compressor`) — applies rules (min run of 3) to indices not already covered by blocks; outputs `CompressionResult`
+5. **Verification** (`Decompressor`) — reconstructs original and checks against input
 
-**Key types:**
-- `Rule` record: holds a `Func<double, double>` transform + description string
-- `CompressedItem` class: `StartIndex`, `StartValue`, `Count`, `Rule`
+### Key types
+
+- `Rule` record: `Func<double, double>` transform + description string
+- `CompressedItem`: `StartIndex`, `StartValue`, `Count`, `RuleIndex` (index into `DiscoveredRules`)
+- `RepeatingBlock`: `StartIndex`, `BlockLength`, `RepeatCount`, `Block` (the repeated values)
+- `CompressionResult`: `DiscoveredRules`, `Compressed`, `RepeatingBlocks`, `UncompressedValues`, `RuleMatches`, `CoveredIndices`
 
 UI strings are in Swedish.
