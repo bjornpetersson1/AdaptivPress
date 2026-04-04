@@ -4,7 +4,7 @@ namespace CustomPress.Compression;
 
 static class Compressor
 {
-    public static CompressionResult Compress(List<double> inputs)
+    public static CompressionResult Compress(List<double> inputs, InputMode mode = InputMode.Numeric)
     {
         var discoveredRules  = RuleFinder.FindRules(inputs);
         var repeatingBlocks  = BlockFinder.FindRepeatingBlocks(inputs);
@@ -74,7 +74,8 @@ static class Compressor
             repeatingBlocks,
             uncompressedValues,
             ruleMatches,
-            coveredIndices
+            coveredIndices,
+            mode
         );
     }
 }

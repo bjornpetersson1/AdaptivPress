@@ -6,5 +6,6 @@ record CompressionResult(
     List<RepeatingBlock> RepeatingBlocks,
     List<double> UncompressedValues,
     Dictionary<int, int> RuleMatches,
-    HashSet<int> CoveredIndices
+    HashSet<int> CoveredIndices,
+    InputMode Mode
 );

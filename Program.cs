@@ -1,4 +1,5 @@
 using CustomPress.Compression;
+using CustomPress.Models;
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -75,6 +76,7 @@ do
 
     string userInput = string.Empty;
     var inputs = new List<double>();
+    var inputMode = InputMode.Numeric;
     var inputType = 0;
     do
     {
@@ -101,28 +103,23 @@ do
                 inputs.Add(result);
                 inputType = 1;   
             }
-            else
+            else if (userInput != "E")
             {
-                foreach (char c in userInput)
-                {
-                inputs.Add((double)c);
-                }
+                inputMode = InputMode.Text;
                 inputType = 2;
+                foreach (char c in userInput)
+                    inputs.Add((double)c);
             }
         }
         else if (inputType == 1)
         {
             if (double.TryParse(userInput, out double result))
-            {
                 inputs.Add(result);
-            }
         }
-        else if (inputType == 2)
+        else if (inputType == 2 && userInput != "E")
         {
             foreach (char c in userInput)
-                {
                 inputs.Add((double)c);
-                }
         }
     }
     while (userInput != "E");
@@ -131,13 +128,19 @@ do
 
     // ── Compress ──────────────────────────────────────────────────────────────────
 
-    var cr       = Compressor.Compress(inputs);
+    var cr       = Compressor.Compress(inputs, inputMode);
     var unpacked = Decompressor.Decompress(inputs.Count, cr, inputs);
+
+    string DoublesToString(IEnumerable<double> vals) =>
+        new string(vals.Select(v => (char)(int)Math.Round(v)).ToArray());
 
     // ── INDATA ────────────────────────────────────────────────────────────────────
 
-    Header($"INDATA  ·  {inputs.Count} datapunkter", ConsoleColor.Cyan);
-    WrapRows(inputs);
+    Header($"INDATA  ·  {inputs.Count} datapunkter  [{(inputMode == InputMode.Text ? "text" : "numerisk")}]", ConsoleColor.Cyan);
+    if (inputMode == InputMode.Text)
+        Row("  " + DoublesToString(inputs));
+    else
+        WrapRows(inputs);
     Footer();
 
     // ── KOMPRIMERING ──────────────────────────────────────────────────────────────
@@ -183,6 +186,8 @@ do
     Header($"OKOMPRIMERADE  ·  {cr.UncompressedValues.Count} tal", ConsoleColor.Yellow);
     if (cr.UncompressedValues.Count == 0)
         Row("  Alla datapunkter komprimerades!", ConsoleColor.Yellow);
+    else if (inputMode == InputMode.Text)
+        Row("  " + DoublesToString(cr.UncompressedValues), ConsoleColor.Yellow);
     else
         WrapRows(cr.UncompressedValues, ConsoleColor.Yellow);
     Footer();
@@ -195,6 +200,8 @@ do
     Header($"VERIFIERING  ·  {unpacked.Count} datapunkter efter uppackning", ConsoleColor.Magenta);
     Row(verified ? "  ✓  Uppackning stämmer med originaldatan" : "  ✗  FEL: uppackning stämmer INTE",
         verified ? ConsoleColor.Green : ConsoleColor.Red);
+    if (inputMode == InputMode.Text && verified)
+        Row("  " + DoublesToString(unpacked), ConsoleColor.Green);
     Footer();
 
     Console.WriteLine("Tryck på valfri tangent för att starta om med nya data...");
