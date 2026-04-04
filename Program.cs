@@ -88,7 +88,7 @@ do
         else
             WrapRows(inputs);
         Divider();
-        Row("  Ange nästa inmatning, eller E för att fortsätta:", ConsoleColor.DarkCyan);
+        Row("  Ange nästa inmatning, eller E för att komprimera:", ConsoleColor.DarkCyan);
         Footer();
 
         Console.ForegroundColor = ConsoleColor.Cyan;
@@ -136,7 +136,7 @@ do
 
     // ── INDATA ────────────────────────────────────────────────────────────────────
 
-    Header($"INDATA  ·  {inputs.Count} datapunkter  [{(inputMode == InputMode.Text ? "text" : "numerisk")}]", ConsoleColor.Cyan);
+    Header($"INDATA  ·  {inputs.Count} datapunkter  [{(inputMode == InputMode.Text ? "TEXT" : "NUMERISK")}]", ConsoleColor.Cyan);
     if (inputMode == InputMode.Text)
         Row("  " + DoublesToString(inputs));
     else
