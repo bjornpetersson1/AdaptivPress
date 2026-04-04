@@ -1,6 +1,6 @@
  # AdaptivPress                                               
   
-  CustomPress is a proof-of-concept .NET console application that compresses sequences of data by finding the mathematical rules behind them.                             
+  AdaptivPress is a proof-of-concept .NET console application that compresses sequences of data by finding the mathematical rules behind them.                             
 
   Feed it a list of numbers — or a piece of text — and instead of storing every value it works out what generated them: an arithmetic progression, a geometric series, a power function, a repeating block, or some combination of the above. Characters in a string are treated as their numeric codes, compressed the same way as any other sequence, and decoded back to readable text on output.
 
