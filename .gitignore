@@ -21,3 +21,6 @@ packages/
 
 # Logs
 *.log
+
+CLAUDE.md
+.claude
