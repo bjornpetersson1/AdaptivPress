@@ -146,7 +146,7 @@ do
     // ── KOMPRIMERING ──────────────────────────────────────────────────────────────
 
     int coveredCount = cr.CoveredIndices.Count;
-    Header($"KOMPRIMERING  ·  {coveredCount} av {inputs.Count} datapunkter täckta", ConsoleColor.Green);
+    Header($"KOMPRIMERING  ·  {coveredCount} av {inputs.Count} datapunkter inkluderade", ConsoleColor.Green);
 
     Row($"MATEMATISKA REGLER  ({cr.Compressed.Count} instanser)", ConsoleColor.DarkGreen);
     if (cr.Compressed.Count == 0)
