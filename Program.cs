@@ -82,13 +82,13 @@ do
     {
         Console.Clear();
 
-        Header($"INDATA  ·  {inputs.Count} tal inmatade", ConsoleColor.Cyan);
+        Header($"INDATA  ·  {inputs.Count} datapunkter inmatade", ConsoleColor.Cyan);
         if (inputs.Count == 0)
-            Row("  (inga tal ännu)", ConsoleColor.DarkGray);
+            Row("  (inga datapunkter ännu)", ConsoleColor.DarkGray);
         else
             WrapRows(inputs);
         Divider();
-        Row("  Ange nästa tal, eller E för att fortsätta:", ConsoleColor.DarkCyan);
+        Row("  Ange nästa inmatning, eller E för att fortsätta:", ConsoleColor.DarkCyan);
         Footer();
 
         Console.ForegroundColor = ConsoleColor.Cyan;
@@ -158,7 +158,7 @@ do
         foreach (var item in cr.Compressed)
         {
             string ruleName = cr.DiscoveredRules[item.RuleIndex].Description;
-            Row($"  [{item.StartIndex}]  {item.Count} tal  →  regel: {ruleName}  (startvärde: {item.StartValue})", ConsoleColor.Green);
+            Row($"  [{item.StartIndex}]  {item.Count} datapunkt  →  regel: {ruleName}  (startvärde: {item.StartValue})", ConsoleColor.Green);
         }
     }
 
@@ -183,7 +183,7 @@ do
 
     // ── OKOMPRIMERADE ─────────────────────────────────────────────────────────────
 
-    Header($"OKOMPRIMERADE  ·  {cr.UncompressedValues.Count} tal", ConsoleColor.Yellow);
+    Header($"OKOMPRIMERADE  ·  {cr.UncompressedValues.Count} datapunkter", ConsoleColor.Yellow);
     if (cr.UncompressedValues.Count == 0)
         Row("  Alla datapunkter komprimerades!", ConsoleColor.Yellow);
     else if (inputMode == InputMode.Text)
