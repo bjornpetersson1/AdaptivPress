@@ -6,7 +6,7 @@
 
   It will not compress everything. But when your data has structure, it will find it.
 
-### Video of using AdaptivPress  
+### Video using AdaptivPress  
 
 [Part 1](https://github.com/user-attachments/assets/648db886-e0e2-432d-a3d4-04b24cb78cdf)
 
